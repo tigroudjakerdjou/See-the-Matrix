@@ -1,0 +1,92 @@
+            currentPhaseIndex = (currentPhaseIndex + 1) % PHASES.length;
+            const phase = PHASES[currentPhaseIndex];
+            currentConfig = phase;
+
+            updateUI(phase);
+
+            // Préparation des nouvelles cibles
+            const targets = particles.geometry.attributes.targetPosition.array;
+            generatePositions(phase.shape, targets);
+            particles.geometry.attributes.targetPosition.needsUpdate = true;
+
+            const targetColors = particles.geometry.attributes.targetColor.array;
+            setColors(phase.color, targetColors);
+            particles.geometry.attributes.targetColor.needsUpdate = true;
+
+            // Animation de transition (Morphing)
+            let start = clock.getElapsedTime();
+            const dur = 2.5; // Transition douce et hypnotique
+
+            const anim = () => {
+                let elapsed = clock.getElapsedTime() - start;
+                let t = Math.min(elapsed / dur, 1);
+
+                // Easing in-out cubique pour une sensation organique
+                let ease = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+                nodeMat.uniforms.uMorph.value = ease;
+                lineMat.uniforms.uMorph.value = ease;
+
+                // Pic de chaos pendant la transition pour un effet de "déchirure"
+                let chaosSpike = Math.sin(t * Math.PI) * 150;
+                nodeMat.uniforms.uChaos.value = phase.chaos + chaosSpike;
+                lineMat.uniforms.uChaos.value = phase.chaos + chaosSpike;
+
+                if(t < 1) {
+                    requestAnimationFrame(anim);
+                } else {
+                    // Fin de la transition : on applique les cibles aux positions actuelles
+                    const p = particles.geometry.attributes.position.array;
+                    for(let i=0; i<p.length; i++) p[i] = targets[i];
+                    particles.geometry.attributes.position.needsUpdate = true;
+
+                    const c = particles.geometry.attributes.color.array;
+                    for(let i=0; i<c.length; i++) c[i] = targetColors[i];
+                    particles.geometry.attributes.color.needsUpdate = true;
+
+                    nodeMat.uniforms.uMorph.value = 0;
+                    lineMat.uniforms.uMorph.value = 0;
+                    nodeMat.uniforms.uChaos.value = phase.chaos;
+                    lineMat.uniforms.uChaos.value = phase.chaos;
+
+                    isTransmuting = false;
+                }
+            };
+            anim();
+        }
+
+        function onResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const time = clock.getElapsedTime();
+
+            nodeMat.uniforms.uTime.value = time;
+            lineMat.uniforms.uTime.value = time;
+
+            // La Danse : rotation multi-axes fluide
+            particles.rotation.y += 0.001 * currentConfig.speed;
+            particles.rotation.z += 0.0005 * Math.sin(time * 0.2) * currentConfig.speed;
+            meshLines.rotation.y += 0.001 * currentConfig.speed;
+            meshLines.rotation.z = particles.rotation.z;
+
+            // Mouvement de caméra immersif (Parallaxe)
+            camera.position.x += (mouseX - camera.position.x) * 0.03;
+            camera.position.y += (-mouseY - camera.position.y) * 0.03;
+
+            // Léger mouvement de respiration de la caméra
+            camera.position.z = 2500 + Math.sin(time * 0.5) * 100;
+
+            camera.lookAt(0,0,0);
+
+            renderer.render(scene, camera);
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>

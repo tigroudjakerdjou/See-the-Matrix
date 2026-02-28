@@ -1,1 +1,102 @@
-@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;700&display=swap');
+
+:root {
+  font-family: 'Space Grotesk', sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #000;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
+  background-color: #000;
+  touch-action: none;
+  user-select: none;
+}
+
+canvas {
+  display: block;
+}
+
+/* Vignettage pour focaliser l'attention au centre */
+.hud-overlay {
+  background: radial-gradient(circle at center, transparent 20%, rgba(0,0,0,0.85) 100%);
+  pointer-events: none;
+}
+
+/* Le Bouton Unique - Hypnotique et Organique */
+.evolve-btn {
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 40px rgba(0, 255, 255, 0.1), inset 0 0 20px rgba(255,255,255,0.05);
+  transition: all 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+  position: relative;
+}
+
+/* Effet de pulsation du bouton */
+.evolve-btn::after {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 255, 255, 0.3);
+  animation: pulse-ring 3s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+  opacity: 0;
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(0.8); opacity: 0.8; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+
+.evolve-btn:hover {
+  box-shadow: 0 0 60px rgba(0, 255, 255, 0.3), inset 0 0 30px rgba(255,255,255,0.1);
+  border-color: rgba(0, 255, 255, 0.5);
+  transform: scale(1.05);
+}
+
+.evolve-btn:active {
+  transform: scale(0.9) rotate(90deg);
+  border-color: #fff;
+  box-shadow: 0 0 100px rgba(255, 255, 255, 0.6);
+}
+
+/* Typographie immersive */
+.quantum-title {
+  letter-spacing: 0.5em;
+  text-shadow: 0 0 30px rgba(255, 255, 255, 0.6);
+  transition: opacity 1s ease, transform 1s ease;
+}
+
+.quantum-desc {
+  transition: opacity 1s ease 0.2s, transform 1s ease 0.2s;
+}
+
+/* Animation de transition de texte */
+.text-fade-out { opacity: 0; transform: translateY(-10px); }
+.text-fade-in { opacity: 1; transform: translateY(0); }
+
+/* Scanline subtile */
+.scanline {
+  width: 100%; height: 1px; background: rgba(0, 255, 255, 0.05);
+  position: absolute; top: 0; pointer-events: none; z-index: 40;
+  animation: scan 8s linear infinite;
+}
+@keyframes scan { from { top: -10%; } to { top: 110%; } }
+
+/* Bruit d'écran très léger */
+.noise-overlay {
+  position: absolute; inset: 0; pointer-events: none; z-index: 35;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}
