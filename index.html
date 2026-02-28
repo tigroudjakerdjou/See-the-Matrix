@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Prima Materia - La Danse Éternelle</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;700&display=swap');
+        body { margin: 0; overflow: hidden; background-color: #000; font-family: 'Space Grotesk', sans-serif; touch-action: none; user-select: none; }
+        canvas { display: block; }
+        
+        /* Vignettage pour focaliser l'attention au centre */
+        .hud-overlay {
+            background: radial-gradient(circle at center, transparent 20%, rgba(0,0,0,0.85) 100%);
+            pointer-events: none;
+        }
+
+        /* Le Bouton Unique - Hypnotique et Organique */
+        .evolve-btn {
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 0 40px rgba(0, 255, 255, 0.1), inset 0 0 20px rgba(255,255,255,0.05);
+            transition: all 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+            position: relative;
+        }
+        
+        /* Effet de pulsation du bouton */
+        .evolve-btn::after {
+            content: '';
+            position: absolute;
+            inset: -5px;
+            border-radius: 50%;
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            animation: pulse-ring 3s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+            opacity: 0;
+        }
+
+        @keyframes pulse-ring {
+            0% { transform: scale(0.8); opacity: 0.8; }
+            100% { transform: scale(1.5); opacity: 0; }
+        }
+
+        .evolve-btn:hover {
+            box-shadow: 0 0 60px rgba(0, 255, 255, 0.3), inset 0 0 30px rgba(255,255,255,0.1);
+            border-color: rgba(0, 255, 255, 0.5);
+            transform: scale(1.05);
+        }
+
+        .evolve-btn:active { 
+            transform: scale(0.9) rotate(90deg); 
+            border-color: #fff; 
+            box-shadow: 0 0 100px rgba(255, 255, 255, 0.6); 
+        }
+
+        /* Typographie immersive */
+        .quantum-title {
+            letter-spacing: 0.5em;
+            text-shadow: 0 0 30px rgba(255, 255, 255, 0.6);
+            transition: opacity 1s ease, transform 1s ease;
+        }
+        
+        .quantum-desc {
+            transition: opacity 1s ease 0.2s, transform 1s ease 0.2s;
+        }
+
+        /* Animation de transition de texte */
+        .text-fade-out { opacity: 0; transform: translateY(-10px); }
+        .text-fade-in { opacity: 1; transform: translateY(0); }
+
+        #loader {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            font-size: 10px; letter-spacing: 8px; opacity: 0.6; color: #fff;
+            text-transform: uppercase; font-weight: 300;
+        }
+
+        /* Scanline subtile */
+        .scanline {
+            width: 100%; height: 1px; background: rgba(0, 255, 255, 0.05);
+            position: absolute; top: 0; pointer-events: none; z-index: 40;
+            animation: scan 8s linear infinite;
+        }
+        @keyframes scan { from { top: -10%; } to { top: 110%; } }
+        
+        /* Bruit d'écran très léger */
+        .noise-overlay {
+            position: absolute; inset: 0; pointer-events: none; z-index: 35;
+            opacity: 0.03;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+        }
+    </style>
+</head>
+<body class="text-white">
+
+    <div class="scanline"></div>
+    <div class="noise-overlay"></div>
+    <div id="loader" class="animate-pulse">Éveil de la Conscience...</div>
+
+    <!-- HUD Immersif (Épuré) -->
+    <div class="absolute inset-0 z-20 hud-overlay flex flex-col justify-between p-8 md:p-12">
+        
+        <!-- Haut : Titre de l'App et Logs subtils -->
+        <div class="flex justify-between items-start w-full">
+            <h1 class="text-[8px] font-bold uppercase tracking-[1em] opacity-40">Prima Materia</h1>
+            
+            <div class="text-[8px] font-mono opacity-20 text-right leading-relaxed tracking-[0.3em] uppercase hidden md:block">
+                Entropie: <span id="log-entropy">Stable</span><br>
+                Résonance: <span id="log-resonance">Harmonique</span><br>
+                Séquence: <span id="cycle-val" class="text-cyan-400">0</span>
+            </div>
+        </div>
+
+        <!-- Centre : Nom de l'état et Description (Intégrés à l'animation) -->
+        <div class="flex flex-col items-center text-center mt-auto mb-32 pointer-events-none">
+            <div id="state-display" class="quantum-title text-2xl md:text-4xl font-light uppercase text-white mb-4">La Danse d'Or</div>
+            <p id="state-desc" class="quantum-desc text-xs md:text-sm opacity-50 font-light tracking-widest italic max-w-lg">
+                La matière n'est qu'une fréquence, et la fréquence n'est qu'une danse de lumière infinie.
+            </p>
+        </div>
+    </div>
+
+    <!-- Le Bouton Unique (Centre Bas) -->
+    <div class="absolute bottom-12 inset-x-0 z-30 flex flex-col items-center">
+        <button onclick="transmute()" class="evolve-btn w-20 h-20 rounded-full flex items-center justify-center pointer-events-auto group">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white/70 group-hover:text-white transition-colors duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+        </button>
+        <div class="mt-6 text-[8px] uppercase tracking-[1em] opacity-30 font-light">Transcender</div>
+    </div>
+
+    <!-- Conteneur WebGL -->
+    <div id="container" class="absolute inset-0"></div>
+
+    <!-- SHADER DES NOEUDS (Points Stellaire) -->
+    <script id="nodeVertex" type="x-shader/x-vertex">
+        varying vec3 vColor;
+        varying float vAlpha;
+        uniform float uTime;
+        uniform float uMorph;
+        uniform float uChaos;
+        attribute vec3 targetPosition;
+        attribute vec3 targetColor;
+
+        // Bruit de Perlin 3D Simplex
+        vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+        vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+        vec4 permute(vec4 x) { return mod289(((x*34.0)+1.0)*x); }
+        vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
+
+        float snoise(vec3 v) {
+            const vec2 C = vec2(1.0/6.0, 1.0/3.0);
+            const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
+            vec3 i  = floor(v + dot(v, C.yyy));
+            vec3 x0 = v - i + dot(i, C.xxx);
+            vec3 g = step(x0.yzx, x0.xyz);
+            vec3 l = 1.0 - g;
+            vec3 i1 = min(g.xyz, l.zxy);
+            vec3 i2 = max(g.xyz, l.zxy);
+            vec3 x1 = x0 - i1 + C.xxx;
+            vec3 x2 = x0 - i2 + C.yyy;
+            vec3 x3 = x0 - D.yyy;
+            i = mod289(i);
+            vec4 p = permute(permute(permute(i.z + vec4(0.0, i1.z, i2.z, 1.0)) + i.y + vec4(0.0, i1.y, i2.y, 1.0)) + i.x + vec4(0.0, i1.x, i2.x, 1.0));
+            vec4 j = p - 49.0 * floor(p * (1.0/49.0));
+            vec4 x_ = floor(j * (1.0/7.0));
+            vec4 y_ = floor(j - 7.0 * x_);
+            vec4 x = x_ * (1.0/7.0) + 0.5/7.0 - 0.5;
+            vec4 y = y_ * (1.0/7.0) + 0.5/7.0 - 0.5;
+            vec4 h = 1.0 - abs(x) - abs(y);
+            vec4 b0 = vec4(x.xy, y.xy);
+            vec4 b1 = vec4(x.zw, y.zw);
+            vec4 s0 = floor(b0)*2.0 + 1.0;
+            vec4 s1 = floor(b1)*2.0 + 1.0;
+            vec4 sh = -step(h, vec4(0.0));
+            vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy;
+            vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww;
+            vec3 p0 = vec3(a0.xy, h.x);
+            vec3 p1 = vec3(a0.zw, h.y);
+            vec3 p2 = vec3(a1.xy, h.z);
+            vec3 p3 = vec3(a1.zw, h.w);
+            vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));
+            p0 *= norm.x; p1 *= norm.y; p2 *= norm.z; p3 *= norm.w;
+            vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
+            return 42.0 * dot(m*m*m*m, vec4(dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3)));
+        }
+
+        void main() {
+            // Morphing de position et de couleur
+            vec3 pos = mix(position, targetPosition, uMorph);
+            vColor = mix(color, targetColor, uMorph);
+            
+            // Ondulation complexe (Somme de plusieurs fréquences)
+            float n1 = snoise(pos * 0.002 + uTime * 0.2);
+            float n2 = snoise(pos * 0.01 + uTime * 0.5) * 0.2;
+            float wave = sin(length(pos) * 0.005 - uTime * 2.0) * 50.0;
+            
+            // Distorsion basée sur le chaos
+            pos += (n1 + n2) * uChaos;
+            pos.y += wave * (uChaos / 50.0);
+            
+            // Calcul de la brillance spectrale basée sur le bruit (Boosté)
+            vColor = vColor * (1.2 + n1 * 0.8);
+            
+            vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
+            
+            // Taille perspective augmentée pour brillance (Boosté)
+            float flicker = 0.75 + 0.25 * sin(uTime * 12.0 + n1 * 10.0);
+            gl_PointSize = (6.0 + n1 * 12.0) * (500.0 / -mvPosition.z) * flicker;
+            
+            gl_Position = projectionMatrix * mvPosition;
+            
+            // Atténuation aux bords
+            vAlpha = smoothstep(12000.0, 200.0, length(pos));
+        }
+    </script>
+
+    <script id="nodeFragment" type="x-shader/x-fragment">
+        varying vec3 vColor;
+        varying float vAlpha;
+        void main() {
+            float d = length(gl_PointCoord - vec2(0.5));
+            if (d > 0.5) discard;
+            
+            // Glow exponentiel sur-activé (Intensifié)
+            float core = 0.08 / d;
+            core = pow(core, 1.3);
+            
+            // Couleur avec coeur blanc (Prime Materia) - Plus contrasté
+            vec3 radiance = mix(vColor, vec3(1.0), pow(core * 0.5, 2.5));
+            
+            gl_FragColor = vec4(radiance * core * 1.2, vAlpha * core);
+        }
+    </script>
+
+    <!-- SHADER DES FILAMENTS (Liaisons) -->
+    <script id="lineVertex" type="x-shader/x-vertex">
+        varying float vAlpha;
+        varying vec3 vColor;
+        uniform float uTime;
+        uniform float uMorph;
+        uniform float uChaos;
+        attribute vec3 targetPosition;
+        attribute vec3 targetColor;
+
+        void main() {
+            vColor = mix(color, targetColor, uMorph);
+            vec3 pos = mix(position, targetPosition, uMorph);
+            
+            // Ondulation des filaments
+            float n = sin(pos.x * 0.01 + uTime) * cos(pos.z * 0.01 + uTime);
+            pos.y += n * uChaos * 0.5;
+            
+            vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
+            gl_Position = projectionMatrix * mvPosition;
+            
+            vAlpha = smoothstep(12000.0, 50.0, length(pos)) * (0.2 + 0.15 * sin(uTime * 3.0));
+        }
+    </script>
+
+    <script id="lineFragment" type="x-shader/x-fragment">
+        varying float vAlpha;
+        varying vec3 vColor;
+        void main() {
+            // Filaments plus visibles et contrastés
+            gl_FragColor = vec4(vColor * 1.5, vAlpha * 0.5);
+        }
+    </script>
+
+    <script>
+        let scene, camera, renderer, clock, nodeMat, lineMat, particles, meshLines;
+        let mouseX = 0, mouseY = 0, cycle = 0;
+        let isTransmuting = false;
+        const P_COUNT = 100000; 
+
+        // Définition des états uniques et fascinants
+        const PHASES = [
+            { 
+                name: "La Danse d'Or", 
+                desc: "La matière n'est qu'une fréquence, et la fréquence n'est qu'une danse de lumière infinie.",
+                shape: "fabric", color: "gold", chaos: 60, speed: 2.0, log: "Harmonique"
+            },
+            { 
+                name: "Symphonie Spectrale", 
+                desc: "Des nuages de probabilités où chaque particule existe partout à la fois.",
+                shape: "nebula", color: "aurora", chaos: 180, speed: 3.5, log: "Instable"
+            },
+            { 
+                name: "Réseau de Diamant", 
+                desc: "L'ordre émerge du chaos. Une structure cristalline parfaite et immuable.",
+                shape: "grid", color: "diamond", chaos: 10, speed: 0.5, log: "Cristallisé"
+            },
+            { 
+                name: "L'Onde Infinie", 
+                desc: "Le tissu de l'espace-temps se plie et se déploie au rythme de l'univers.",
+                shape: "wave", color: "neon", chaos: 100, speed: 5.0, log: "Fluctuant"
+            },
+            { 
+                name: "Singularité Photonique", 
+                desc: "Toute l'énergie converge vers un point unique, défiant les lois de la physique.",
+                shape: "singularity", color: "white", chaos: 400, speed: 0.2, log: "Critique"
+            },
+            { 
+                name: "ADN Cosmique", 
+                desc: "L'information fondamentale de l'univers s'enroule sur elle-même.",
+                shape: "helix", color: "cyber", chaos: 40, speed: 1.5, log: "Séquençage"
+            },
+            { 
+                name: "Vortex de Dirac", 
+                desc: "Une mer d'énergie négative tourbillonnant dans le vide quantique.",
+                shape: "torus", color: "void", chaos: 150, speed: 4.0, log: "Aspirant"
+            }
+        ];
+
+        let currentPhaseIndex = 0;
+        let currentConfig = PHASES[0];
+
+        function init() {
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x000000, 0.00015);
+
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 30000);
+            camera.position.z = 2500;
+
+            renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.getElementById('container').appendChild(renderer.domElement);
+
+            clock = new THREE.Clock();
+
+            const geo = new THREE.BufferGeometry();
+            const pos = new Float32Array(P_COUNT * 3);
+            const tar = new Float32Array(P_COUNT * 3);
+            const col = new Float32Array(P_COUNT * 3);
+            const tarCol = new Float32Array(P_COUNT * 3);
+
+            // Initialisation avec le premier état
+            generatePositions(currentConfig.shape, pos);
+            generatePositions(currentConfig.shape, tar);
+            setColors(currentConfig.color, col);
+            setColors(currentConfig.color, tarCol);
+
+            geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+            geo.setAttribute('targetPosition', new THREE.BufferAttribute(tar, 3));
+            geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+            geo.setAttribute('targetColor', new THREE.BufferAttribute(tarCol, 3));
+
+            nodeMat = new THREE.ShaderMaterial({
+                uniforms: { uTime: { value: 0 }, uMorph: { value: 0 }, uChaos: { value: currentConfig.chaos } },
+                vertexShader: document.getElementById('nodeVertex').textContent,
+                fragmentShader: document.getElementById('nodeFragment').textContent,
+                transparent: true, blending: THREE.AdditiveBlending, depthWrite: false,
+                vertexColors: true
+            });
+
+            particles = new THREE.Points(geo, nodeMat);
+            scene.add(particles);
+
+            lineMat = new THREE.ShaderMaterial({
+                uniforms: { uTime: { value: 0 }, uMorph: { value: 0 }, uChaos: { value: currentConfig.chaos } },
+                vertexShader: document.getElementById('lineVertex').textContent,
+                fragmentShader: document.getElementById('lineFragment').textContent,
+                transparent: true, blending: THREE.AdditiveBlending, depthWrite: false,
+                vertexColors: true
+            });
+
+            // Création des filaments (liaisons entre particules)
+            const lineIndices = [];
+            for(let i=0; i<P_COUNT; i+=80) { // Moins de lignes pour plus de clarté
+                if(i + 1 < P_COUNT) lineIndices.push(i, i+1);
+                if(i + 150 < P_COUNT) lineIndices.push(i, i+150);
+            }
+            geo.setIndex(lineIndices);
+
+            meshLines = new THREE.LineSegments(geo, lineMat);
+            scene.add(meshLines);
+
+            document.getElementById('loader').style.display = 'none';
+
+            window.addEventListener('resize', onResize);
+            
+            // Interaction fluide avec la souris/touch
+            document.addEventListener('mousemove', (e) => {
+                mouseX = (e.clientX - window.innerWidth/2) * 0.3;
+                mouseY = (e.clientY - window.innerHeight/2) * 0.3;
+            });
+            document.addEventListener('touchmove', (e) => {
+                if(e.touches.length > 0) {
+                    mouseX = (e.touches[0].clientX - window.innerWidth/2) * 0.5;
+                    mouseY = (e.touches[0].clientY - window.innerHeight/2) * 0.5;
+                }
+            }, { passive: true });
+            
+            updateUI(currentConfig);
+            animate();
+        }
+
+        function generatePositions(type, array) {
+            for (let i = 0; i < P_COUNT; i++) {
+                const i3 = i * 3;
+                if (type === 'fabric') {
+                    const size = Math.sqrt(P_COUNT);
+                    const x = (i % size - size/2) * 40;
+                    const y = (Math.floor(i / size) - size/2) * 40;
+                    array[i3] = x;
+                    array[i3+1] = y;
+                    array[i3+2] = Math.sin(x*0.005) * 400;
+                } else if (type === 'grid') {
+                    const s = Math.ceil(Math.pow(P_COUNT, 1/3));
+                    const step = 120;
+                    array[i3] = (i % s - s/2) * step;
+                    array[i3+1] = (Math.floor(i/s) % s - s/2) * step;
+                    array[i3+2] = (Math.floor(i/(s*s)) - s/2) * step;
+                } else if (type === 'wave') {
+                    const r = (i / P_COUNT) * 6000;
+                    const th = i * 0.1;
+                    array[i3] = Math.cos(th) * r;
+                    array[i3+1] = Math.sin(r * 0.01) * 1000;
+                    array[i3+2] = Math.sin(th) * r;
+                } else if (type === 'singularity') {
+                    const r = Math.pow(Math.random(), 6) * 10000; // Très concentré au centre
+                    const th = Math.random() * Math.PI * 2;
+                    const ph = Math.random() * Math.PI;
+                    array[i3] = r * Math.sin(ph) * Math.cos(th);
+                    array[i3+1] = r * Math.sin(ph) * Math.sin(th);
+                    array[i3+2] = r * Math.cos(ph);
+                } else if (type === 'helix') {
+                    const t = i / P_COUNT;
+                    const angle = t * Math.PI * 40; // Nombre de tours
+                    const radius = 600 + Math.sin(t * Math.PI * 10) * 200;
+                    array[i3] = Math.cos(angle) * radius * (i%2==0?1:-1);
+                    array[i3+1] = (t - 0.5) * 6000;
+                    array[i3+2] = Math.sin(angle) * radius * (i%2==0?1:-1);
+                } else if (type === 'torus') {
+                    const R = 1200, r = 400;
+                    const u = Math.random() * Math.PI * 2;
+                    const v = Math.random() * Math.PI * 2;
+                    array[i3] = (R + r * Math.cos(v)) * Math.cos(u);
+                    array[i3+1] = (R + r * Math.cos(v)) * Math.sin(u);
+                    array[i3+2] = r * Math.sin(v);
+                } else { // Nebula
+                    const r = 300 + Math.random() * 3000;
+                    const th = Math.random() * Math.PI * 2;
+                    const ph = Math.random() * Math.PI;
+                    array[i3] = r * Math.sin(ph) * Math.cos(th);
+                    array[i3+1] = r * Math.sin(ph) * Math.sin(th) * 0.5; // Aplati
+                    array[i3+2] = r * Math.cos(ph);
+                }
+            }
+        }
+
+        function setColors(theme, array) {
+            const c = new THREE.Color();
+            for (let i = 0; i < P_COUNT; i++) {
+                const i3 = i * 3;
+                if(theme === 'gold') c.setHSL(0.12, 0.9, 0.4 + Math.random()*0.4);
+                else if(theme === 'aurora') c.setHSL((i/P_COUNT + Math.random()*0.3)%1, 0.9, 0.6);
+                else if(theme === 'diamond') c.setHSL(0.55, 0.4, 0.8 + Math.random()*0.2);
+                else if(theme === 'neon') c.setHSL(0.85, 1.0, 0.6);
+                else if(theme === 'cyber') c.setHSL(0.45, 1.0, 0.5 + Math.random()*0.3); // Cyan/Vert
+                else if(theme === 'void') c.setHSL(0.75, 0.8, 0.3 + Math.random()*0.4); // Violet sombre
+                else c.setRGB(0.9, 0.9, 1.0); // White
+                
+                array[i3] = c.r; array[i3+1] = c.g; array[i3+2] = c.b;
+            }
+        }
+
+        function updateUI(phase) {
+            const titleEl = document.getElementById('state-display');
+            const descEl = document.getElementById('state-desc');
+            
+            // Animation de sortie
+            titleEl.classList.add('text-fade-out');
+            descEl.classList.add('text-fade-out');
+            
+            setTimeout(() => {
+                titleEl.innerText = phase.name;
+                descEl.innerText = phase.desc;
+                
+                // Animation d'entrée
+                titleEl.classList.remove('text-fade-out');
+                descEl.classList.remove('text-fade-out');
+                
+                // Logs
+                document.getElementById('log-entropy').innerText = phase.chaos > 100 ? 'Élevée' : 'Basse';
+                document.getElementById('log-resonance').innerText = phase.log;
+            }, 500);
+        }
+
+        function transmute() {
+            if(isTransmuting) return;
+            isTransmuting = true;
+            
+            cycle++;
+            document.getElementById('cycle-val').innerText = cycle;
+            
+            // Sélection du prochain état (séquentiel pour garantir la découverte de tous)
+            currentPhaseIndex = (currentPhaseIndex + 1) % PHASES.length;
+            const phase = PHASES[currentPhaseIndex];
+            currentConfig = phase;
+            
+            updateUI(phase);
+            
+            // Préparation des nouvelles cibles
+            const targets = particles.geometry.attributes.targetPosition.array;
+            generatePositions(phase.shape, targets);
+            particles.geometry.attributes.targetPosition.needsUpdate = true;
+            
+            const targetColors = particles.geometry.attributes.targetColor.array;
+            setColors(phase.color, targetColors);
+            particles.geometry.attributes.targetColor.needsUpdate = true;
+
+            // Animation de transition (Morphing)
+            let start = clock.getElapsedTime();
+            const dur = 2.5; // Transition douce et hypnotique
+            
+            const anim = () => {
+                let elapsed = clock.getElapsedTime() - start;
+                let t = Math.min(elapsed / dur, 1);
+                
+                // Easing in-out cubique pour une sensation organique
+                let ease = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+                
+                nodeMat.uniforms.uMorph.value = ease;
+                lineMat.uniforms.uMorph.value = ease;
+                
+                // Pic de chaos pendant la transition pour un effet de "déchirure"
+                let chaosSpike = Math.sin(t * Math.PI) * 150;
+                nodeMat.uniforms.uChaos.value = phase.chaos + chaosSpike;
+                lineMat.uniforms.uChaos.value = phase.chaos + chaosSpike;
+                
+                if(t < 1) {
+                    requestAnimationFrame(anim);
+                } else {
+                    // Fin de la transition : on applique les cibles aux positions actuelles
+                    const p = particles.geometry.attributes.position.array;
+                    for(let i=0; i<p.length; i++) p[i] = targets[i];
+                    particles.geometry.attributes.position.needsUpdate = true;
+                    
+                    const c = particles.geometry.attributes.color.array;
+                    for(let i=0; i<c.length; i++) c[i] = targetColors[i];
+                    particles.geometry.attributes.color.needsUpdate = true;
+                    
+                    nodeMat.uniforms.uMorph.value = 0;
+                    lineMat.uniforms.uMorph.value = 0;
+                    nodeMat.uniforms.uChaos.value = phase.chaos;
+                    lineMat.uniforms.uChaos.value = phase.chaos;
+                    
+                    isTransmuting = false;
+                }
+            };
+            anim();
+        }
+
+        function onResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const time = clock.getElapsedTime();
+            
+            nodeMat.uniforms.uTime.value = time;
+            lineMat.uniforms.uTime.value = time;
+            
+            // La Danse : rotation multi-axes fluide
+            particles.rotation.y += 0.001 * currentConfig.speed;
+            particles.rotation.z += 0.0005 * Math.sin(time * 0.2) * currentConfig.speed;
+            meshLines.rotation.y += 0.001 * currentConfig.speed;
+            meshLines.rotation.z = particles.rotation.z;
+            
+            // Mouvement de caméra immersif (Parallaxe)
+            camera.position.x += (mouseX - camera.position.x) * 0.03;
+            camera.position.y += (-mouseY - camera.position.y) * 0.03;
+            
+            // Léger mouvement de respiration de la caméra
+            camera.position.z = 2500 + Math.sin(time * 0.5) * 100;
+            
+            camera.lookAt(0,0,0);
+            
+            renderer.render(scene, camera);
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
+
