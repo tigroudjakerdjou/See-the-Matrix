@@ -1,0 +1,99 @@
+                name: "Singularité Photonique",
+                desc: "Toute l'énergie converge vers un point unique, défiant les lois de la physique.",
+                shape: "singularity", color: "white", chaos: 400, speed: 0.2, log: "Critique"
+            },
+            {
+                name: "ADN Cosmique",
+                desc: "L'information fondamentale de l'univers s'enroule sur elle-même.",
+                shape: "helix", color: "cyber", chaos: 40, speed: 1.5, log: "Séquençage"
+            },
+            {
+                name: "Vortex de Dirac",
+                desc: "Une mer d'énergie négative tourbillonnant dans le vide quantique.",
+                shape: "torus", color: "void", chaos: 150, speed: 4.0, log: "Aspirant"
+            }
+        ];
+
+        let currentPhaseIndex = 0;
+        let currentConfig = PHASES[0];
+
+        function init() {
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x000000, 0.00015);
+
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 30000);
+            camera.position.z = 2500;
+
+            renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.getElementById('container').appendChild(renderer.domElement);
+
+            clock = new THREE.Clock();
+
+            const geo = new THREE.BufferGeometry();
+            const pos = new Float32Array(P_COUNT * 3);
+            const tar = new Float32Array(P_COUNT * 3);
+            const col = new Float32Array(P_COUNT * 3);
+            const tarCol = new Float32Array(P_COUNT * 3);
+
+            // Initialisation avec le premier état
+            generatePositions(currentConfig.shape, pos);
+            generatePositions(currentConfig.shape, tar);
+            setColors(currentConfig.color, col);
+            setColors(currentConfig.color, tarCol);
+
+            geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+            geo.setAttribute('targetPosition', new THREE.BufferAttribute(tar, 3));
+            geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+            geo.setAttribute('targetColor', new THREE.BufferAttribute(tarCol, 3));
+
+            nodeMat = new THREE.ShaderMaterial({
+                uniforms: { uTime: { value: 0 }, uMorph: { value: 0 }, uChaos: { value: currentConfig.chaos } },
+                vertexShader: document.getElementById('nodeVertex').textContent,
+                fragmentShader: document.getElementById('nodeFragment').textContent,
+                transparent: true, blending: THREE.AdditiveBlending, depthWrite: false,
+                vertexColors: true
+            });
+
+            particles = new THREE.Points(geo, nodeMat);
+            scene.add(particles);
+
+            lineMat = new THREE.ShaderMaterial({
+                uniforms: { uTime: { value: 0 }, uMorph: { value: 0 }, uChaos: { value: currentConfig.chaos } },
+                vertexShader: document.getElementById('lineVertex').textContent,
+                fragmentShader: document.getElementById('lineFragment').textContent,
+                transparent: true, blending: THREE.AdditiveBlending, depthWrite: false,
+                vertexColors: true
+            });
+
+            // Création des filaments (liaisons entre particules)
+            const lineIndices = [];
+            for(let i=0; i<P_COUNT; i+=80) { // Moins de lignes pour plus de clarté
+                if(i + 1 < P_COUNT) lineIndices.push(i, i+1);
+                if(i + 150 < P_COUNT) lineIndices.push(i, i+150);
+            }
+            geo.setIndex(lineIndices);
+
+            meshLines = new THREE.LineSegments(geo, lineMat);
+            scene.add(meshLines);
+
+            document.getElementById('loader').style.display = 'none';
+
+            window.addEventListener('resize', onResize);
+
+            // Interaction fluide avec la souris/touch
+            document.addEventListener('mousemove', (e) => {
+                mouseX = (e.clientX - window.innerWidth/2) * 0.3;
+                mouseY = (e.clientY - window.innerHeight/2) * 0.3;
+            });
+            document.addEventListener('touchmove', (e) => {
+                if(e.touches.length > 0) {
+                    mouseX = (e.touches[0].clientX - window.innerWidth/2) * 0.5;
+                    mouseY = (e.touches[0].clientY - window.innerHeight/2) * 0.5;
+                }
+            }, { passive: true });
+
+            updateUI(currentConfig);
+            animate();
+        }

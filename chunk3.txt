@@ -1,0 +1,100 @@
+            pos += (n1 + n2) * uChaos;
+            pos.y += wave * (uChaos / 50.0);
+
+            // Calcul de la brillance spectrale basée sur le bruit (Boosté)
+            vColor = vColor * (1.2 + n1 * 0.8);
+
+            vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
+
+            // Taille perspective augmentée pour brillance (Boosté)
+            float flicker = 0.75 + 0.25 * sin(uTime * 12.0 + n1 * 10.0);
+            gl_PointSize = (6.0 + n1 * 12.0) * (500.0 / -mvPosition.z) * flicker;
+
+            gl_Position = projectionMatrix * mvPosition;
+
+            // Atténuation aux bords
+            vAlpha = smoothstep(12000.0, 200.0, length(pos));
+        }
+    </script>
+
+    <script id="nodeFragment" type="x-shader/x-fragment">
+        varying vec3 vColor;
+        varying float vAlpha;
+        void main() {
+            float d = length(gl_PointCoord - vec2(0.5));
+            if (d > 0.5) discard;
+
+            // Glow exponentiel sur-activé (Intensifié)
+            float core = 0.08 / d;
+            core = pow(core, 1.3);
+
+            // Couleur avec coeur blanc (Prime Materia) - Plus contrasté
+            vec3 radiance = mix(vColor, vec3(1.0), pow(core * 0.5, 2.5));
+
+            gl_FragColor = vec4(radiance * core * 1.2, vAlpha * core);
+        }
+    </script>
+
+    <!-- SHADER DES FILAMENTS (Liaisons) -->
+    <script id="lineVertex" type="x-shader/x-vertex">
+        varying float vAlpha;
+        varying vec3 vColor;
+        uniform float uTime;
+        uniform float uMorph;
+        uniform float uChaos;
+        attribute vec3 targetPosition;
+        attribute vec3 targetColor;
+
+        void main() {
+            vColor = mix(color, targetColor, uMorph);
+            vec3 pos = mix(position, targetPosition, uMorph);
+
+            // Ondulation des filaments
+            float n = sin(pos.x * 0.01 + uTime) * cos(pos.z * 0.01 + uTime);
+            pos.y += n * uChaos * 0.5;
+
+            vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
+            gl_Position = projectionMatrix * mvPosition;
+
+            vAlpha = smoothstep(12000.0, 50.0, length(pos)) * (0.2 + 0.15 * sin(uTime * 3.0));
+        }
+    </script>
+
+    <script id="lineFragment" type="x-shader/x-fragment">
+        varying float vAlpha;
+        varying vec3 vColor;
+        void main() {
+            // Filaments plus visibles et contrastés
+            gl_FragColor = vec4(vColor * 1.5, vAlpha * 0.5);
+        }
+    </script>
+
+    <script>
+        let scene, camera, renderer, clock, nodeMat, lineMat, particles, meshLines;
+        let mouseX = 0, mouseY = 0, cycle = 0;
+        let isTransmuting = false;
+        const P_COUNT = 100000;
+
+        // Définition des états uniques et fascinants
+        const PHASES = [
+            {
+                name: "La Danse d'Or",
+                desc: "La matière n'est qu'une fréquence, et la fréquence n'est qu'une danse de lumière infinie.",
+                shape: "fabric", color: "gold", chaos: 60, speed: 2.0, log: "Harmonique"
+            },
+            {
+                name: "Symphonie Spectrale",
+                desc: "Des nuages de probabilités où chaque particule existe partout à la fois.",
+                shape: "nebula", color: "aurora", chaos: 180, speed: 3.5, log: "Instable"
+            },
+            {
+                name: "Réseau de Diamant",
+                desc: "L'ordre émerge du chaos. Une structure cristalline parfaite et immuable.",
+                shape: "grid", color: "diamond", chaos: 10, speed: 0.5, log: "Cristallisé"
+            },
+            {
+                name: "L'Onde Infinie",
+                desc: "Le tissu de l'espace-temps se plie et se déploie au rythme de l'univers.",
+                shape: "wave", color: "neon", chaos: 100, speed: 5.0, log: "Fluctuant"
+            },
+            {

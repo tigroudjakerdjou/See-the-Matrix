@@ -1,0 +1,100 @@
+        function generatePositions(type, array) {
+            for (let i = 0; i < P_COUNT; i++) {
+                const i3 = i * 3;
+                if (type === 'fabric') {
+                    const size = Math.sqrt(P_COUNT);
+                    const x = (i % size - size/2) * 40;
+                    const y = (Math.floor(i / size) - size/2) * 40;
+                    array[i3] = x;
+                    array[i3+1] = y;
+                    array[i3+2] = Math.sin(x*0.005) * 400;
+                } else if (type === 'grid') {
+                    const s = Math.ceil(Math.pow(P_COUNT, 1/3));
+                    const step = 120;
+                    array[i3] = (i % s - s/2) * step;
+                    array[i3+1] = (Math.floor(i/s) % s - s/2) * step;
+                    array[i3+2] = (Math.floor(i/(s*s)) - s/2) * step;
+                } else if (type === 'wave') {
+                    const r = (i / P_COUNT) * 6000;
+                    const th = i * 0.1;
+                    array[i3] = Math.cos(th) * r;
+                    array[i3+1] = Math.sin(r * 0.01) * 1000;
+                    array[i3+2] = Math.sin(th) * r;
+                } else if (type === 'singularity') {
+                    const r = Math.pow(Math.random(), 6) * 10000; // Très concentré au centre
+                    const th = Math.random() * Math.PI * 2;
+                    const ph = Math.random() * Math.PI;
+                    array[i3] = r * Math.sin(ph) * Math.cos(th);
+                    array[i3+1] = r * Math.sin(ph) * Math.sin(th);
+                    array[i3+2] = r * Math.cos(ph);
+                } else if (type === 'helix') {
+                    const t = i / P_COUNT;
+                    const angle = t * Math.PI * 40; // Nombre de tours
+                    const radius = 600 + Math.sin(t * Math.PI * 10) * 200;
+                    array[i3] = Math.cos(angle) * radius * (i%2==0?1:-1);
+                    array[i3+1] = (t - 0.5) * 6000;
+                    array[i3+2] = Math.sin(angle) * radius * (i%2==0?1:-1);
+                } else if (type === 'torus') {
+                    const R = 1200, r = 400;
+                    const u = Math.random() * Math.PI * 2;
+                    const v = Math.random() * Math.PI * 2;
+                    array[i3] = (R + r * Math.cos(v)) * Math.cos(u);
+                    array[i3+1] = (R + r * Math.cos(v)) * Math.sin(u);
+                    array[i3+2] = r * Math.sin(v);
+                } else { // Nebula
+                    const r = 300 + Math.random() * 3000;
+                    const th = Math.random() * Math.PI * 2;
+                    const ph = Math.random() * Math.PI;
+                    array[i3] = r * Math.sin(ph) * Math.cos(th);
+                    array[i3+1] = r * Math.sin(ph) * Math.sin(th) * 0.5; // Aplati
+                    array[i3+2] = r * Math.cos(ph);
+                }
+            }
+        }
+
+        function setColors(theme, array) {
+            const c = new THREE.Color();
+            for (let i = 0; i < P_COUNT; i++) {
+                const i3 = i * 3;
+                if(theme === 'gold') c.setHSL(0.12, 0.9, 0.4 + Math.random()*0.4);
+                else if(theme === 'aurora') c.setHSL((i/P_COUNT + Math.random()*0.3)%1, 0.9, 0.6);
+                else if(theme === 'diamond') c.setHSL(0.55, 0.4, 0.8 + Math.random()*0.2);
+                else if(theme === 'neon') c.setHSL(0.85, 1.0, 0.6);
+                else if(theme === 'cyber') c.setHSL(0.45, 1.0, 0.5 + Math.random()*0.3); // Cyan/Vert
+                else if(theme === 'void') c.setHSL(0.75, 0.8, 0.3 + Math.random()*0.4); // Violet sombre
+                else c.setRGB(0.9, 0.9, 1.0); // White
+
+                array[i3] = c.r; array[i3+1] = c.g; array[i3+2] = c.b;
+            }
+        }
+
+        function updateUI(phase) {
+            const titleEl = document.getElementById('state-display');
+            const descEl = document.getElementById('state-desc');
+
+            // Animation de sortie
+            titleEl.classList.add('text-fade-out');
+            descEl.classList.add('text-fade-out');
+
+            setTimeout(() => {
+                titleEl.innerText = phase.name;
+                descEl.innerText = phase.desc;
+
+                // Animation d'entrée
+                titleEl.classList.remove('text-fade-out');
+                descEl.classList.remove('text-fade-out');
+
+                // Logs
+                document.getElementById('log-entropy').innerText = phase.chaos > 100 ? 'Élevée' : 'Basse';
+                document.getElementById('log-resonance').innerText = phase.log;
+            }, 500);
+        }
+
+        function transmute() {
+            if(isTransmuting) return;
+            isTransmuting = true;
+
+            cycle++;
+            document.getElementById('cycle-val').innerText = cycle;
+
+            // Sélection du prochain état (séquentiel pour garantir la découverte de tous)
